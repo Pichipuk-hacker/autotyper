@@ -1,155 +1,138 @@
 # Windows AutoTyper & Built-in Keyboard Lock (`AutoHotInterception`)
 
-This repository contains two tools for Windows:
-1. **AutoTyper** — A high-speed (1,000 chars/sec), remote-compatible Python Auto-Typer that reads text dynamically from `~/autotype_text.txt` on every start and sends real Win32 Virtual Keys (`wVk`) + Hardware Scan Codes (`wScan`). Works locally and across remote keyboard/desktop software (AnyDesk, Parsec, GlideX, RDP, Bluetooth HID, KVM). The implementation is organized as a package (`autotyper/`) with a compatibility entry point (`autotyper.py`).
-2. **`HP_Keyboard_Lock.ahk`** — An AutoHotkey v2 + AutoHotInterception script that blocks selected keys (`A–Z`, `0–9`, `;`, `:`, `'`, `"`, `[`, `]`, `=`, `+`, `,`, `.`, `/`) **only on the laptop's built-in keyboard** while keeping your external USB/Bluetooth keyboard 100% functional.
-
-A complete ready-to-use archive (**`AutoTyper_and_Keyboard_Lock_Bundle.zip`**) is also included directly in this repository.
-
----
-
-## Quick Download (ZIP Bundle)
-
-You can download **[`AutoTyper_and_Keyboard_Lock_Bundle.zip`](./AutoTyper_and_Keyboard_Lock_Bundle.zip)** directly from this repository. It includes:
-- `autotyper.py`, the `autotyper/` package, & `Start_AutoTyper.bat`
-- `HP_Keyboard_Lock.ahk` & `Start_Keyboard_Lock.bat`
-- `autotype_text.txt` (sample text file)
-- `AHI/` (pre-structured `C:\AHI` folder with `Monitor.ahk`, `AutoHotInterception.ahk`, `AutoHotInterception.dll`, `x86`/`x64` `interception.dll`, and `Unblocker.ps1`)
-- `Interception/` (`install-interception.exe` command-line driver installer)
+This repository contains tools for Windows:
+1. **AutoTyper** — A high-speed (1,000 chars/sec), remote-compatible Python Auto-Typer that reads text dynamically from `~/autotype_text.txt` (or over the network) and sends real Win32 Virtual Keys (`wVk`) + Hardware Scan Codes (`wScan`). Works locally, across remote desktops (AnyDesk, Parsec, GlideX, RDP), and supports **Cross-Laptop Synchronization**.
+2. **Cross-Laptop Sync Engine** — Type or paste code on **Laptop 1** (via a zero-install browser dashboard or file watcher), and have the person on **Laptop 2** trigger, pause, resume, and stop the typing into their active window whenever they want using custom hotkeys (`F8`, `Ctrl + Alt + Space`).
+3. **`HP_Keyboard_Lock.ahk`** — An AutoHotkey v2 + AutoHotInterception script that blocks selected keys (`A–Z`, `0–9`, symbols) **only on the laptop's built-in keyboard** while keeping external USB/Bluetooth keyboards 100% functional.
 
 ---
 
-## Part 1: How to Run the AutoTyper (`autotyper.py`)
+## Part 1: Cross-Laptop Setup (Type on Laptop 1 -> AutoType on Laptop 2)
 
-### 1. Prerequisites
-1. Install **[Python 3.10+](https://www.python.org/downloads/)** (during installation, tick **"Add python.exe to PATH"**).
-2. Install `pynput` in Command Prompt or PowerShell:
-   ```powershell
-   python -m pip install pynput
+This mode allows you to write or edit code on **Laptop 1** while another person on **Laptop 2** automatically receives the text and types it into any target window on demand using keyboard shortcuts.
+
+### Step 1: Start AutoTyper on Laptop 2 (Receiver)
+On **Laptop 2** (where the target application/window is):
+1. Double-click **`Start_AutoTyper.bat`** (or run `python autotyper.py`).
+2. The terminal will start the listener and display the **Web Dashboard URL**, for example:
+   ```text
+   ============================================================
+   AutoTyper Active & Listening (Windows + Remote Keyboard)
+   ============================================================
+   Reading from   : C:\Users\Username\autotype_text.txt
+   Sync Server    : Active on port 8765
+   Web Dashboard  : http://192.168.1.45:8765 (Open this on Laptop 1 or phone!)
+   Local URL      : http://localhost:8765
+   ------------------------------------------------------------
+   Hotkeys (Physical Keyboard on this Laptop):
+     - Ctrl + Alt + Space : Toggle (Start / Pause / Resume) [Recommended]
+     - F8                 : Toggle Alternative
+     - Escape / Ctrl+Alt+C: Emergency Stop / Cancel
+     - Alt + = / Alt + -  : Slower / Faster
+   ============================================================
    ```
+*(Make sure both laptops are on the same Wi-Fi / local network, or connected via mobile hotspot).*
 
-### 2. Prepare Your Text File (`autotype_text.txt`)
-By default, `autotyper.py` reads from your Windows user home folder:
-```text
-C:\Users\<YourUsername>\autotype_text.txt
+---
+
+### Step 2: Send Text from Laptop 1 (Sender)
+
+You have **two options** on Laptop 1:
+
+#### Option A: Web Dashboard (Zero Installation — Recommended)
+1. Open any web browser on **Laptop 1** (Chrome, Edge, Firefox, Safari, or even a smartphone).
+2. Enter the URL shown on Laptop 2 (e.g. `http://192.168.1.45:8765`).
+3. Type or paste your code into the editor.
+4. Click **🚀 Sync to Laptop 2** (or keep **Auto-sync while typing** checked to sync automatically as you write).
+5. The dashboard shows real-time progress, typing speed, and status (`STOPPED`, `COUNTDOWN`, `RUNNING`, `PAUSED`).
+
+#### Option B: Automatic File Watcher (Edit in VS Code / Notepad)
+If you prefer typing in your own code editor (VS Code, Notepad, Sublime) on Laptop 1:
+```powershell
+python autotyper.py watch "C:\path\to\my_code.py" --server http://192.168.1.45:8765
 ```
-- Create or edit `C:\Users\<YourUsername>\autotype_text.txt` and paste the code/text you want typed.
-- **No restart needed when editing:** The script re-reads `autotype_text.txt` automatically every time you trigger Start.
+Every time you press `Ctrl + S` in your editor on Laptop 1, the script instantly updates Laptop 2.
 
-### 3. Start the AutoTyper
-- **Option A (Batch Launcher):** Double-click **`Start_AutoTyper.bat`** (or run `python C:\AHI\autotyper.py`).
-  *(Note: If your Python path differs, `Start_AutoTyper.bat` automatically falls back to `python` on your `PATH`.)*
-- **Option B (Command Line):**
-  ```powershell
-  python autotyper.py
-  ```
-  You can also run the package directly:
-  ```powershell
-  python -m autotyper
-  ```
-  You can also pass a custom text file path:
-  ```powershell
-  python autotyper.py "C:\path\to\custom_text.txt"
-  ```
+#### Option C: One-Off Send Command
+```powershell
+python autotyper.py send "C:\path\to\code.py" --server http://192.168.1.45:8765
+```
 
-### 4. AutoTyper Hotkeys
+---
 
-| Shortcut | Action |
+### Step 3: Trigger & Control Typing on Laptop 2
+The person on **Laptop 2** clicks into the target text box or IDE window and uses their hotkeys:
+
+| Shortcut on Laptop 2 | Action |
 | :--- | :--- |
-| **`F8`** | **Start / Pause / Resume** typing *(Recommended when Keyboard Lock is active)* |
-| **`Win + Alt`** | **Start / Pause / Resume** typing (either press order) |
-| **`Ctrl + Alt + Space`** | **Start / Pause / Resume** typing |
-| **`Ctrl + Alt + Enter`** | **Start / Pause / Resume** typing |
-| **`Ctrl + Alt + X`** or **`Z`** | **Start / Pause / Resume** typing |
-| **`Esc`** or **`Ctrl + Alt + C`** | **Emergency Stop / Cancel** and reset to beginning |
-| **`Alt + =`** | **Slower** (increases per-character delay by `+0.02s`) |
-| **`Alt + -`** | **Faster** (decreases per-character delay down to `0.001s` = 1,000 chars/s) |
+| **`F8`** or **`Ctrl + Alt + Space`** | **Start typing** (5-second countdown gives time to focus window) |
+| **`F8`** or **`Ctrl + Alt + Space`** (while typing) | **Pause** typing instantly |
+| **`F8`** or **`Ctrl + Alt + Space`** (while paused) | **Resume** typing right where it stopped |
+| **`Esc`** or **`Ctrl + Alt + C`** | **Emergency Stop / Cancel** & reset back to the start |
+| **`Alt + =`** | **Slower** (increases delay by `+0.02s`) |
+| **`Alt + -`** | **Faster** (decreases delay down to `0.001s` = 1,000 chars/s) |
 
-### 5. Useful Commands
-- Run built-in self-test:
+---
+
+## Part 2: Local Usage (Single Machine)
+
+If you only want to use the AutoTyper locally on one machine:
+
+1. **Install Prerequisites:**
+   * Python 3.10+
+   * `pip install pynput` (or run `pip install -r requirements.txt`)
+2. **Text File:** Edit `~/autotype_text.txt` in your user home folder.
+3. **Launch:** Run `python autotyper.py` or double-click `Start_AutoTyper.bat`.
+4. **Trigger:** Press `F8` or `Ctrl + Alt + Space` to start, pause, or resume.
+
+---
+
+## Part 3: Built-in Keyboard Lock (`HP_Keyboard_Lock.ahk`)
+
+Used when you place an external keyboard directly over a laptop's built-in keyboard to disable the built-in keys without affecting the external keyboard:
+
+1. Install **AutoHotkey v2**.
+2. Install the kernel driver from `Interception\command line installer`:
+   ```cmd
+   install-interception.exe /install
+   ```
+   *(Reboot Windows after installing)*.
+3. Run `Monitor.ahk` to identify your laptop's keyboard hardware handle (e.g., `ACPI\VEN_ATK&DEV_3001`).
+4. Set the handle in `HP_Keyboard_Lock.ahk` line 10.
+5. Run `Start_Keyboard_Lock.bat`. Toggle on/off anytime with **Left Ctrl + Left Alt**.
+
+---
+
+## Code Structure
+
+```text
+autotyper/
+├── config.py       # Configuration constants, delays, default ports
+├── engine.py       # AutoTyper state machine, typing engine, text updater
+├── hotkeys.py      # Global hotkey listener (F8, Ctrl+Alt+Space, Esc)
+├── sync.py         # Cross-laptop HTTP sync server, REST API, Web UI, file watcher
+├── win32_input.py  # Win32 SendInput, VirtualKey & hardware scan-code mappings
+├── cli.py          # Command line runner (run, send, watch, stop)
+├── selftest.py     # Built-in self-test suite (engine & sync server)
+├── notify.py       # Notification hook
+└── pid.py          # Single-instance process lock
+```
+
+### Useful Commands
+
+* **Run Self-Test:**
   ```powershell
   python autotyper.py --self-test
   ```
-- Stop a running background instance:
+* **Disable Server (Local only):**
+  ```powershell
+  python autotyper.py --no-server
+  ```
+* **Custom Sync Port:**
+  ```powershell
+  python autotyper.py --port 9000
+  ```
+* **Stop Background Instance:**
   ```powershell
   python autotyper.py stop
   ```
-
-### 6. AutoTyper Code Structure
-The AutoTyper code is split into focused modules under `autotyper/`:
-- `config.py` — default paths, delays, and behavior constants
-- `win32_input.py` — Win32 `SendInput`/virtual-key/scan-code helpers
-- `engine.py` — `AutoTyper` state machine and typing logic
-- `hotkeys.py` — global hotkey listener and modifier state
-- `pid.py` — single-instance PID helpers
-- `cli.py` — CLI and application runner
-- `selftest.py` — built-in self-test
-- `notify.py` — notification hook
-
-`autotyper.py` remains a thin compatibility entry point, and `python -m autotyper` is also supported.
-
----
-
-## Part 2: How to Set Up & Run the Built-in Keyboard Lock (`HP_Keyboard_Lock.ahk`)
-
-### 1. Install Required Software
-1. Install **[AutoHotkey v2](https://www.autohotkey.com/)**.
-2. Extract the `AHI` folder from `AutoTyper_and_Keyboard_Lock_Bundle.zip` to **`C:\AHI`** so the layout is:
-   ```text
-   C:\AHI\
-   ├── HP_Keyboard_Lock.ahk
-   ├── Monitor.ahk
-   ├── Start_Keyboard_Lock.bat
-   ├── Start_AutoTyper.bat
-   ├── autotyper.py
-   ├── autotyper\
-   │   ├── __init__.py
-   │   ├── __main__.py
-   │   ├── cli.py
-   │   ├── config.py
-   │   ├── engine.py
-   │   ├── hotkeys.py
-   │   ├── notify.py
-   │   ├── pid.py
-   │   ├── selftest.py
-   │   └── win32_input.py
-   └── Lib\
-       ├── AutoHotInterception.ahk
-       ├── AutoHotInterception.dll
-       ├── CLR.ahk
-       ├── Unblocker.ps1
-       ├── x86\
-       │   └── interception.dll
-       └── x64\
-           └── interception.dll
-   ```
-3. Unblock the files in PowerShell:
-   ```powershell
-   Get-ChildItem -Path "C:\AHI" -Recurse | Unblock-File
-   ```
-
-### 2. Install the Interception Driver (Administrator + Reboot)
-1. Open **Command Prompt as Administrator**.
-2. Navigate to the extracted `Interception\command line installer` folder and install:
-   ```cmd
-   cd /d "C:\Interception\command line installer"
-   install-interception.exe /install
-   ```
-3. **Restart Windows** (required for the kernel driver to load).
-
-### 3. Find Your Built-in Laptop Keyboard Handle
-1. Run **`C:\AHI\Monitor.ahk`** with AutoHotkey v2.
-2. Check each keyboard entry one at a time and press keys on your **built-in laptop keyboard**.
-3. Copy the **Handle** of the keyboard that responds (for example, `ACPI\VEN_ATK&DEV_3001` or `ACPI\VEN_HPQ&DEV_8001`).
-4. Close `Monitor.ahk`, open `C:\AHI\HP_Keyboard_Lock.ahk` in a text editor, and set line 10:
-   ```autohotkey
-   keyboardHandle := "ACPI\VEN_ATK&DEV_3001" ; <-- Replace with your laptop's handle
-   ```
-
-### 4. Run and Toggle the Keyboard Lock
-1. Make sure your **external keyboard** is connected.
-2. Double-click **`C:\AHI\Start_Keyboard_Lock.bat`** (or `HP_Keyboard_Lock.ahk`).
-3. **Immediate Lock:** As soon as the script starts, the built-in laptop keyboard keys (`A–Z`, `0–9`, `;`, `:`, `'`, `"`, `[`, `]`, `=`, `+`, `,`, `.`, `/`) are **locked**.
-4. **Toggle Lock On/Off:** Press **Left Ctrl + Left Alt** (in either order) at any time to unlock or re-lock the built-in keyboard.
-5. **Exit & Restore:** Right-click the green **H** AutoHotkey icon in the system tray and click **Exit** to completely restore all keys.
-

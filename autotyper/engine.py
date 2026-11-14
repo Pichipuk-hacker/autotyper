@@ -56,7 +56,11 @@ class AutoTyper:
             except Exception as e:
                 print(f"[AutoTyper] Warning: Could not read {self.file_path}: {e}")
         else:
+            if self.text and self.text.strip():
+                return self.text
             print(f"[AutoTyper] Warning: {self.file_path} not found; using fallback text.")
+        if self.text and self.text.strip():
+            return self.text
         return config.FALLBACK_TEXT
 
     # ---- low-level Win32 VirtualKey + ScanCode SendInput --------------
@@ -329,3 +333,40 @@ class AutoTyper:
         msg = f"Delay: {delay:.2f}s (~{cps:.1f} chars/s) [{direction}]"
         print(f"[AutoTyper] {msg}")
         notify.notify(msg)
+
+    def update_text(self, new_text, save_file=True):
+        cleaned = (new_text or "").replace("\r\n", "\n")
+        with self.cond:
+            self.text = cleaned
+            if self.state == "STOPPED":
+                self.index = 0
+            self._rebuild_keymap()
+            total = len(self.text)
+            lines = len(self.text.splitlines()) if self.text else 0
+        if save_file and self.file_path:
+            try:
+                parent = os.path.dirname(os.path.abspath(self.file_path))
+                if parent and not os.path.exists(parent):
+                    os.makedirs(parent, exist_ok=True)
+                with open(self.file_path, "w", encoding="utf-8") as f:
+                    f.write(self.text)
+            except Exception as e:
+                print(f"[AutoTyper] Warning: Could not write updated text to {self.file_path}: {e}")
+        print(f"[AutoTyper Sync] Text updated ({total} chars, {lines} lines)")
+        return total
+
+    def get_status(self):
+        with self.cond:
+            delay = self.delay
+            cps = round(1.0 / delay, 1) if delay > 0 else 1000.0
+            total = len(self.text) if self.text else 0
+            prog = round((self.index / total * 100), 1) if total > 0 else 0.0
+            return {
+                "state": self.state,
+                "index": self.index,
+                "total": total,
+                "delay": round(delay, 4),
+                "chars_per_sec": cps,
+                "file_path": self.file_path,
+                "progress_percent": prog,
+            }

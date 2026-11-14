@@ -1,11 +1,13 @@
-"""Built-in self-test for the AutoTyper engine."""
+"""Built-in self-test for the AutoTyper engine and sync system."""
 
 import os
 import tempfile
 import time
+from urllib.request import urlopen
 
 from . import config, notify
 from .engine import AutoTyper
+from .sync import send_text, start_sync_server
 
 
 def run_self_test():
@@ -62,9 +64,45 @@ def run_self_test():
         t.adjust_delay(-10.0)
         assert t.delay == 0.001, t.delay
 
-        print("self-test: OK")
+        # Test update_text and get_status
+        total = t.update_text("def hello():\n    return 42", save_file=True)
+        assert total == len("def hello():\n    return 42")
+        status = t.get_status()
+        assert status["state"] == "STOPPED"
+        assert status["total"] == total
+
+        # Test Sync Server & Client
+        # Use port 0 to let OS select an available port
+        server, lan_ip, port = start_sync_server(t, host="127.0.0.1", port=0)
+        # Get bound port
+        actual_port = server.server_port
+        server_url = f"http://127.0.0.1:{actual_port}"
+
+        try:
+            # Test GET / (Dashboard HTML)
+            with urlopen(f"{server_url}/") as resp:
+                assert resp.status == 200
+                html = resp.read().decode("utf-8")
+                assert "AutoTyper Remote Sync" in html
+
+            # Test GET /api/status
+            with urlopen(f"{server_url}/api/status") as resp:
+                assert resp.status == 200
+
+            # Test send_text (POST /api/text)
+            sync_res = send_text(server_url, "print('from laptop 1')")
+            assert sync_res["status"] == "ok"
+            assert t.text == "print('from laptop 1')"
+            assert t.get_status()["total"] == len("print('from laptop 1')")
+
+        finally:
+            server.shutdown()
+            server.server_close()
+
+        print("self-test: OK (Engine + Sync Server)")
     finally:
-        os.remove(path)
+        if os.path.exists(path):
+            os.remove(path)
         config.COUNTDOWN_SECONDS = orig_countdown
         notify.notify = orig_notify
         win32_input.cleanup_modifiers = orig_cleanup

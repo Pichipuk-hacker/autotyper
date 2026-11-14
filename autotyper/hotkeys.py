@@ -1,6 +1,9 @@
 """Global hotkey listener and modifier state."""
 
-from pynput import keyboard
+try:
+    from pynput import keyboard
+except ImportError:
+    keyboard = None
 
 from . import notify
 
@@ -10,25 +13,25 @@ _pressed = set()
 
 
 def _norm(key):
-    return _listener.canonical(key) if _listener else key
+    return _listener.canonical(key) if (_listener and hasattr(_listener, "canonical")) else key
 
 
 def _is_cmd(k):
-    if k is None:
+    if k is None or keyboard is None:
         return False
     k = _norm(k)
     return k in (keyboard.Key.cmd, keyboard.Key.cmd_l, keyboard.Key.cmd_r)
 
 
 def _is_alt(k):
-    if k is None:
+    if k is None or keyboard is None:
         return False
     k = _norm(k)
     return k in (keyboard.Key.alt, keyboard.Key.alt_l, keyboard.Key.alt_r, keyboard.Key.alt_gr)
 
 
 def _is_ctrl(k):
-    if k is None:
+    if k is None or keyboard is None:
         return False
     k = _norm(k)
     return k in (keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r)
@@ -69,7 +72,7 @@ def on_press(key, injected=False):
         return
     _pressed.add(norm_key)
 
-    if norm_key == _norm(keyboard.Key.esc):
+    if keyboard and norm_key == _norm(keyboard.Key.esc):
         if typer:
             typer.cancel()
         return
@@ -77,7 +80,7 @@ def on_press(key, injected=False):
     # Primary Non-F Universal Shortcuts:
     # Ctrl + Alt + Space, Ctrl + Alt + Enter, or Ctrl + Alt + X / Z
     if has_ctrl() and has_alt():
-        if norm_key in (_norm(keyboard.Key.space), _norm(keyboard.Key.enter)) or _is_key(
+        if (keyboard and norm_key in (_norm(keyboard.Key.space), _norm(keyboard.Key.enter))) or _is_key(
             key, ("x", "X", "\x18", "z", "Z", "\x1a"), (0x58, 0x5A)
         ):
             if typer:
@@ -95,7 +98,7 @@ def on_press(key, injected=False):
         return
 
     # Function key fallback: F8
-    if norm_key == _norm(keyboard.Key.f8):
+    if keyboard and norm_key == _norm(keyboard.Key.f8):
         if typer:
             typer.toggle()
         return
@@ -115,6 +118,8 @@ def on_release(key, injected=False):
 
 
 def start_listener(auto_typer):
+    if keyboard is None:
+        raise RuntimeError("pynput is required for hotkey listening. Install with: pip install pynput")
     global typer, _listener
     typer = auto_typer
     _listener = keyboard.Listener(on_press=on_press, on_release=on_release)
