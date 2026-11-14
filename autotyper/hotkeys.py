@@ -103,6 +103,17 @@ def on_press(key, injected=False):
             typer.toggle()
         return
 
+    # Indentation mode toggle: F9 or Ctrl + Alt + I
+    if keyboard and norm_key == _norm(keyboard.Key.f9):
+        if typer:
+            typer.toggle_smart_indent()
+        return
+
+    if has_ctrl() and has_alt() and _is_key(key, ("i", "I", "\x09"), (0x49,)):
+        if typer:
+            typer.toggle_smart_indent()
+        return
+
     if _is_key(key, ("=", "+"), (0xBB, 0x6B)):
         if has_alt() and typer and not typer._typing:
             typer.adjust_delay(+0.02)

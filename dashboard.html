@@ -34,7 +34,7 @@
       max-width: 860px;
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      gap: 1.15rem;
     }
     header {
       display: flex;
@@ -77,6 +77,32 @@
       font-family: var(--font-mono);
       font-size: 0.88rem;
     }
+    .indent-bar {
+      background: #172033;
+      border: 1px solid #233554;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      font-size: 0.86rem;
+    }
+    .indent-options {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .indent-radio {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .indent-radio input { accent-color: var(--primary); }
     .editor-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
@@ -257,9 +283,25 @@
       </div>
     </div>
 
+    <!-- Indentation Mode Selector -->
+    <div class="indent-bar">
+      <span style="font-weight: 600; color: #bae6fd;">🎯 Indentation Mode on Laptop 2:</span>
+      <div class="indent-options">
+        <label class="indent-radio">
+          <input type="radio" name="indentMode" id="indentSmart" value="smart" checked>
+          <span>⚡ <strong>Smart Fix</strong> (HackerRank, LeetCode, Assessment Portals)</span>
+        </label>
+        <label class="indent-radio">
+          <input type="radio" name="indentMode" id="indentRaw" value="raw">
+          <span>📝 <strong>Raw Literal</strong> (Plain Notepad / Simple Textbox)</span>
+        </label>
+      </div>
+    </div>
+
     <div class="instructions-box">
-      <strong>⚡ How to use:</strong> Paste your code below and click <strong>🚀 Send to Laptop 2</strong>.
+      <strong>⚡ How to use:</strong> Paste your code below and click <strong>🚀 Send to Laptop 2</strong>.<br>
       Laptop 2 will immediately play a chime sound and load your code. Then, switch to your target window on Laptop 2 and press <strong>F8</strong> to type!
+      <em>(Press <strong>F9</strong> on Laptop 2 anytime to toggle Smart Indent fix on the fly.)</em>
     </div>
 
     <div class="editor-card">
@@ -306,6 +348,8 @@
     const statusState = document.getElementById("statusState");
     const statusTime = document.getElementById("statusTime");
     const statusDetails = document.getElementById("statusDetails");
+    const indentSmart = document.getElementById("indentSmart");
+    const indentRaw = document.getElementById("indentRaw");
 
     let currentMode = "cloud";
     let debounceTimer = null;
@@ -444,8 +488,36 @@
       });
     }
 
+    // Remote Indentation Mode Sync
+    async function syncIndentMode(isSmart) {
+      const room = roomInput.value.trim() || "autotyper-pichipuk-sync";
+      const cmd = isSmart ? "__CMD__:smart_indent_on" : "__CMD__:smart_indent_off";
+      try {
+        if (currentMode === "cloud") {
+          await transmitCloudMessage(room, cmd, "Indent Mode");
+        } else {
+          const rawServer = serverInput.value.trim().replace(/\/+$/, "");
+          const url = rawServer.startsWith("http") ? rawServer : `http://${rawServer}`;
+          await fetch(`${url}/api/action`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "set_smart_indent", enabled: isSmart })
+          });
+        }
+        statusDetails.innerHTML = `<em>Switched Laptop 2 Indentation Mode to: <strong>${isSmart ? "SMART (Assessment Portal Auto-Indent Fix)" : "RAW (Literal Indentation)"}</strong></em>`;
+      } catch (e) {
+        console.warn("Could not sync indent mode:", e);
+      }
+    }
+
+    indentSmart.addEventListener("change", () => syncIndentMode(true));
+    indentRaw.addEventListener("change", () => syncIndentMode(false));
+
     async function sendCode(isManualClick = true) {
-      const code = editor.value;
+      // Normalize any tab characters to 4 spaces
+      const rawCode = editor.value;
+      const code = rawCode.replace(/\t/g, "    ");
+
       if (!code.trim() && isManualClick) {
         alert("Please paste or type some code into the editor box first!");
         editor.focus();
@@ -460,13 +532,23 @@
       const room = roomInput.value.trim() || "autotyper-pichipuk-sync";
       const lines = code.split("\n");
       const firstLine = (lines[0] || "").substring(0, 50);
+      const isSmart = indentSmart.checked;
 
       try {
         if (currentMode === "cloud") {
+          // Sync indent mode first, then payload
+          const cmd = isSmart ? "__CMD__:smart_indent_on" : "__CMD__:smart_indent_off";
+          await transmitCloudMessage(room, cmd, "Indent Mode");
+          await new Promise(r => setTimeout(r, 80));
           await transmitCloudMessage(room, code, "AutoTyper Sync");
         } else {
           const rawServer = serverInput.value.trim().replace(/\/+$/, "");
           const url = rawServer.startsWith("http") ? rawServer : `http://${rawServer}`;
+          await fetch(`${url}/api/action`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "set_smart_indent", enabled: isSmart })
+          });
           const res = await fetch(`${url}/api/text`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -481,6 +563,7 @@
         statusState.style.color = "var(--success)";
         statusTime.textContent = `Sent at ${getTimestamp()} • Target: ${currentMode === "cloud" ? 'Cloud Room "' + room + '"' : 'Local IP'}`;
         statusDetails.innerHTML = `<strong>Status:</strong> Successfully delivered <strong>${code.length}</strong> chars (<strong>${lines.length}</strong> lines).<br>` +
+                                  `<strong>Indent Mode:</strong> <span style="color:#22c55e;">${isSmart ? "⚡ SMART FIX (Prevents double-indent in HackerRank/LeetCode)" : "📝 RAW (Literal)"}</span><br>` +
                                   `<strong>Preview:</strong> <code style="color:#38bdf8;">${firstLine || "(blank)"}...</code><br>` +
                                   `👉 <em>Laptop 2 should have chimed! Click inside your target window on Laptop 2 and press <strong>F8</strong> to start typing.</em>`;
 

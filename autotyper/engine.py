@@ -133,28 +133,37 @@ class AutoTyper:
 
     def _newline(self):
         with self._xlock:
-            # 1. Tap Enter
-            self._tap_vk(VK_RETURN)
+            # 1. Tap Enter with explicit key dwell time
+            send_inputs([make_vk_input(VK_RETURN, False)])
+            time.sleep(0.015)
+            send_inputs([make_vk_input(VK_RETURN, True)])
+
             # 2. Critical pause: Give target editor time to create new line & auto-indent
-            time.sleep(0.045)
+            time.sleep(0.060)
 
             if config.SMART_INDENT:
                 # Check if the next character is another newline (i.e. empty line)
                 next_char = self.text[self.index + 1] if (self.index + 1 < len(self.text)) else None
                 if next_char is not None and next_char != "\n":
-                    # On a non-empty line: Home to column 0, Shift+End to highlight auto-indent.
-                    # The file's own indentation or code will immediately overwrite the selection.
-                    events = [
+                    # On a non-empty line: Send Home twice to guarantee cursor is at column 0
+                    events_home = [
                         make_vk_input(VK_HOME, False),
                         make_vk_input(VK_HOME, True),
                         make_vk_input(VK_HOME, False),
                         make_vk_input(VK_HOME, True),
+                    ]
+                    send_inputs(events_home)
+                    time.sleep(0.015)
+
+                    # Highlight whatever whitespace the editor auto-inserted so the source line
+                    # indentation or first character replaces it cleanly
+                    events_select = [
                         make_vk_input(VK_LSHIFT, False),
                         make_vk_input(VK_END, False),
                         make_vk_input(VK_END, True),
                         make_vk_input(VK_LSHIFT, True),
                     ]
-                    send_inputs(events)
+                    send_inputs(events_select)
                     time.sleep(0.015)
 
     def _wait_for_modifiers_release(self):
@@ -370,6 +379,21 @@ class AutoTyper:
                 print(f"[AutoTyper] Warning: Could not write updated text to {self.file_path}: {e}")
         print(f"[AutoTyper Sync] Text updated ({total} chars, {lines} lines)")
         return total
+
+    def toggle_smart_indent(self, value=None):
+        if value is None:
+            config.SMART_INDENT = not config.SMART_INDENT
+        else:
+            config.SMART_INDENT = bool(value)
+        mode = "SMART (Assessment Portal Auto-Indent Fix)" if config.SMART_INDENT else "RAW (Literal Indentation)"
+        try:
+            import winsound
+            winsound.Beep(1000 if config.SMART_INDENT else 650, 150)
+        except Exception:
+            pass
+        print(f"\n[AutoTyper] Indentation Mode: {mode}\n")
+        notify.notify(f"Indent: {mode}")
+        return config.SMART_INDENT
 
     def get_status(self):
         with self.cond:

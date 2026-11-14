@@ -24,10 +24,12 @@ PID_FILE = os.path.expanduser("~/.autotyper.pid")
 # Spaces per indent level (used when the file uses tabs)
 TAB_WIDTH = 4
 
-# SMART_INDENT: False by default. Perfect for online assessment portals,
-# web code boxes, and browser tests where indentation should be typed exactly
-# as written in the source code without stripping.
-SMART_INDENT = False
+# SMART_INDENT: True by default!
+# Solves double-indentation and staircase indents in online assessment portals
+# (HackerRank, LeetCode, Mercer Mettl, Monaco, Ace, CodeMirror, VS Code).
+# Replaces auto-inserted editor whitespace with the exact source file indentation.
+# Press F9 or Ctrl + Alt + I on Laptop 2 to toggle anytime.
+SMART_INDENT = True
 
 # Slightly vary the delay between keys so typing looks natural and never floods event queues.
 HUMAN_JITTER = True

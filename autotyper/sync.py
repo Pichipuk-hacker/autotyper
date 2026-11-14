@@ -656,7 +656,10 @@ class SyncHandler(BaseHTTPRequestHandler):
                     delay_val = float(data.get("delay", config.CHAR_DELAY))
                     self.typer.set_delay(delay_val)
                 elif action == "set_smart_indent":
-                    config.SMART_INDENT = bool(data.get("enabled", False))
+                    enabled = bool(data.get("enabled", True))
+                    self.typer.toggle_smart_indent(enabled)
+                elif action == "toggle_smart_indent":
+                    self.typer.toggle_smart_indent()
 
             info = self.typer.get_status() if self.typer else {}
             response = json.dumps({"status": "ok", "action": action, "status_info": info}).encode("utf-8")
@@ -717,6 +720,15 @@ def start_cloud_listener(typer, room=config.DEFAULT_CLOUD_ROOM, server_base=conf
                             if ev.get("event") == "message":
                                 msg = ev.get("message", "")
                                 if msg:
+                                    if msg.startswith("__CMD__:"):
+                                        cmd = msg.split(":", 1)[1].strip()
+                                        if cmd == "smart_indent_on":
+                                            typer.toggle_smart_indent(True)
+                                        elif cmd == "smart_indent_off":
+                                            typer.toggle_smart_indent(False)
+                                        elif cmd == "toggle_smart_indent":
+                                            typer.toggle_smart_indent()
+                                        continue
                                     # Audio chime on Laptop 2
                                     try:
                                         import winsound
