@@ -718,7 +718,26 @@ def start_cloud_listener(typer, room=config.DEFAULT_CLOUD_ROOM, server_base=conf
                             if ev.get("event") == "message":
                                 msg = ev.get("message", "")
                                 if msg:
-                                    print(f"\n[AutoTyper Cloud] Received text update from room '{room}' ({len(msg)} chars)")
+                                    # Audio chime on Laptop 2
+                                    try:
+                                        import winsound
+                                        winsound.Beep(1200, 180)
+                                    except Exception:
+                                        pass
+
+                                    lines = msg.splitlines()
+                                    line_count = len(lines)
+                                    first_line = (lines[0][:50] + "...") if (lines and len(lines[0]) > 50) else (lines[0] if lines else "")
+
+                                    print("\n" + "=" * 60)
+                                    print(f"🔔 [NEW CODE RECEIVED FROM LAPTOP 1!]")
+                                    print(f"   Characters : {len(msg)}")
+                                    print(f"   Lines      : {line_count}")
+                                    print(f"   Preview    : {first_line}")
+                                    print(f"   Status     : LOADED & READY TO TYPE!")
+                                    print(f"   Action     : Press F8 in your target window now.")
+                                    print("=" * 60 + "\n")
+
                                     typer.update_text(msg, save_file=True)
                         except Exception:
                             pass

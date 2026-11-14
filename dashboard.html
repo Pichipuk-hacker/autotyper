@@ -129,14 +129,20 @@
       user-select: none;
     }
     .auto-sync-label input { accent-color: var(--primary); }
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
     button {
-      padding: 0.55rem 1.25rem;
+      padding: 0.6rem 1.25rem;
       border-radius: 6px;
       font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
       border: none;
-      transition: all 0.15s ease-in-out;
+      transition: all 0.2s ease-in-out;
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
@@ -149,18 +155,41 @@
       background: var(--primary-hover);
       color: #ffffff;
     }
-    .banner {
-      padding: 0.65rem 1rem;
-      border-radius: 6px;
-      font-size: 0.88rem;
-      font-weight: 500;
-      display: none;
+    .btn-secondary {
+      background: #334155;
+      color: #e2e8f0;
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+    .btn-success {
+      background: var(--success) !important;
+      color: #0f172a !important;
+    }
+    .status-panel {
+      background: #131c2e;
+      border: 1px solid #233554;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .status-row {
+      display: flex;
       align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
       gap: 0.5rem;
     }
-    .banner.show { display: flex; }
-    .banner.success { background: #064e3b; color: #a7f3d0; border: 1px solid #059669; }
-    .banner.error { background: #7f1d1d; color: #fecaca; border: 1px solid #dc2626; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 600;
+      color: var(--success);
+    }
     .mode-tab {
       display: flex;
       gap: 0.5rem;
@@ -204,21 +233,30 @@
       </div>
     </div>
 
-    <div id="banner" class="banner"></div>
-
     <div class="editor-card">
       <div class="editor-header">
         <span>Source Code / Text</span>
         <span id="charCount">0 characters &bull; 0 lines</span>
       </div>
-      <textarea id="editor" placeholder="Type or paste your code here... Laptop 2 will receive it anywhere in the world." spellcheck="false"></textarea>
+      <textarea id="editor" placeholder="Paste your code here... All newlines and indentation will be preserved 100%!" spellcheck="false"></textarea>
       <div class="editor-footer">
         <label class="auto-sync-label">
-          <input type="checkbox" id="autoSync" checked>
-          <span>Auto-sync while typing (0.8s debounce)</span>
+          <input type="checkbox" id="autoSync">
+          <span>Auto-sync while typing</span>
         </label>
-        <button id="btnSync" class="btn-primary">🚀 Send to Laptop 2</button>
+        <div class="btn-group">
+          <button id="btnTest" class="btn-secondary" title="Plays a chime sound on Laptop 2 to verify connection">🔔 Test Sound on Laptop 2</button>
+          <button id="btnSync" class="btn-primary">🚀 Send to Laptop 2</button>
+        </div>
       </div>
+    </div>
+
+    <div id="statusPanel" class="status-panel">
+      <div class="status-row">
+        <span class="status-badge" id="statusState">⚪ Ready to send</span>
+        <span id="statusTime" style="color: var(--muted);">No code sent yet in this session</span>
+      </div>
+      <div id="statusDetails" style="font-family: var(--font-mono); font-size: 0.8rem; color: #cbd5e1; word-break: break-all;"></div>
     </div>
   </div>
 
@@ -226,6 +264,7 @@
     const editor = document.getElementById("editor");
     const charCount = document.getElementById("charCount");
     const btnSync = document.getElementById("btnSync");
+    const btnTest = document.getElementById("btnTest");
     const autoSync = document.getElementById("autoSync");
     const roomInput = document.getElementById("roomInput");
     const serverInput = document.getElementById("serverInput");
@@ -233,7 +272,9 @@
     const tabLocal = document.getElementById("tabLocal");
     const cloudGroup = document.getElementById("cloudGroup");
     const localGroup = document.getElementById("localGroup");
-    const banner = document.getElementById("banner");
+    const statusState = document.getElementById("statusState");
+    const statusTime = document.getElementById("statusTime");
+    const statusDetails = document.getElementById("statusDetails");
 
     let currentMode = "cloud";
     let debounceTimer = null;
@@ -282,50 +323,107 @@
       }
     });
 
-    function showBanner(msg, type = "success") {
-      banner.textContent = msg;
-      banner.className = `banner show ${type}`;
-      setTimeout(() => {
-        banner.className = "banner";
-      }, 3500);
+    function getTimestamp() {
+      const d = new Date();
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
-    async function sendCode(showBannerMsg = true) {
+    async function sendCode(isManualClick = true) {
       const code = editor.value;
-      if (currentMode === "cloud") {
-        const room = roomInput.value.trim() || "autotyper-pichipuk-sync";
-        try {
+      if (!code.trim() && isManualClick) {
+        alert("Please paste or type some code into the box first!");
+        return;
+      }
+
+      if (isManualClick) {
+        btnSync.textContent = "⏳ Sending to Laptop 2...";
+        btnSync.disabled = true;
+      }
+
+      const room = roomInput.value.trim() || "autotyper-pichipuk-sync";
+      const lines = code.split("\\n");
+      const firstLine = (lines[0] || "").substring(0, 40);
+
+      try {
+        if (currentMode === "cloud") {
           const res = await fetch(`https://ntfy.sh/${encodeURIComponent(room)}`, {
             method: "POST",
             body: code,
             headers: { "Title": "AutoTyper Sync" }
           });
-          if (res.ok) {
-            if (showBannerMsg) showBanner(`✅ Sent ${code.length} characters to Cloud Room "${room}"!`, "success");
-          } else {
-            showBanner(`❌ Cloud send failed (HTTP ${res.status})`, "error");
-          }
-        } catch (err) {
-          showBanner("❌ Connection error: " + err.message, "error");
-        }
-      } else {
-        const rawServer = serverInput.value.trim().replace(/\\/+$/, "");
-        const url = rawServer.startsWith("http") ? rawServer : `http://${rawServer}`;
-        try {
+          if (!res.ok) throw new Error(`Server returned HTTP ${res.status}`);
+        } else {
+          const rawServer = serverInput.value.trim().replace(/\\/+$/, "");
+          const url = rawServer.startsWith("http") ? rawServer : `http://${rawServer}`;
           const res = await fetch(`${url}/api/text`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text: code })
           });
-          const data = await res.json();
-          if (showBannerMsg) showBanner(`✅ Synced ${data.chars} chars to Laptop 2 locally!`, "success");
-        } catch (err) {
-          showBanner("❌ Local connection failed: " + err.message, "error");
+          if (!res.ok) throw new Error(`Local server returned HTTP ${res.status}`);
+        }
+
+        // Success state update
+        statusState.innerHTML = "🟢 Delivered to Laptop 2!";
+        statusState.style.color = "var(--success)";
+        statusTime.textContent = `Sent at ${getTimestamp()} • Target: ${currentMode === "cloud" ? 'Cloud Room "' + room + '"' : 'Local IP'}`;
+        statusDetails.textContent = `Delivered: ${code.length} chars, ${lines.length} lines | Starts with: "${firstLine}..."`;
+
+        if (isManualClick) {
+          btnSync.textContent = "✅ Delivered to Laptop 2!";
+          btnSync.classList.add("btn-success");
+          setTimeout(() => {
+            btnSync.textContent = "🚀 Send to Laptop 2";
+            btnSync.classList.remove("btn-success");
+            btnSync.disabled = false;
+          }, 3000);
+        }
+      } catch (err) {
+        statusState.innerHTML = "🔴 Send Failed!";
+        statusState.style.color = "var(--danger)";
+        statusTime.textContent = `Failed at ${getTimestamp()}`;
+        statusDetails.textContent = `Error: ${err.message}`;
+
+        if (isManualClick) {
+          btnSync.textContent = "❌ Failed to send";
+          setTimeout(() => {
+            btnSync.textContent = "🚀 Send to Laptop 2";
+            btnSync.disabled = false;
+          }, 3000);
         }
       }
     }
 
+    async function sendPing() {
+      btnTest.textContent = "⏳ Ringing...";
+      btnTest.disabled = true;
+      const room = roomInput.value.trim() || "autotyper-pichipuk-sync";
+      const pingMessage = "# --- CONNECTION TEST PING ---\\n# Laptop 1 and Laptop 2 are CONNECTED!\\nprint('Connection OK!')";
+
+      try {
+        await fetch(`https://ntfy.sh/${encodeURIComponent(room)}`, {
+          method: "POST",
+          body: pingMessage,
+          headers: { "Title": "AutoTyper Test Ping" }
+        });
+        statusState.innerHTML = "🔔 Test Chime Sent!";
+        statusState.style.color = "var(--primary)";
+        statusTime.textContent = `Sent at ${getTimestamp()}`;
+        statusDetails.textContent = `Laptop 2 should be chiming/beeping and showing connection box in its terminal right now!`;
+        btnTest.textContent = "🔔 Rang Laptop 2!";
+        setTimeout(() => {
+          btnTest.textContent = "🔔 Test Sound on Laptop 2";
+          btnTest.disabled = false;
+        }, 3000);
+      } catch (err) {
+        alert("Could not send test ping: " + err.message);
+        btnTest.textContent = "🔔 Test Sound on Laptop 2";
+        btnTest.disabled = false;
+      }
+    }
+
     btnSync.addEventListener("click", () => sendCode(true));
+    btnTest.addEventListener("click", () => sendPing());
   </script>
 </body>
 </html>
