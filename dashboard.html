@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoTyper Universal Dashboard (Sender)</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1rem 3rem 1rem;
+    }
+    .container {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+    .brand h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .brand p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+    .network-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.85rem;
+    }
+    .input-field {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #f8fafc;
+      padding: 0.45rem 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+    }
+    .editor-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .editor-header {
+      background: #172033;
+      padding: 0.65rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    textarea {
+      width: 100%;
+      min-height: 380px;
+      padding: 1rem;
+      background: transparent;
+      color: #f1f5f9;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      border: none;
+      resize: vertical;
+      outline: none;
+      white-space: pre;
+    }
+    .editor-footer {
+      background: #172033;
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    .auto-sync-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .auto-sync-label input { accent-color: var(--primary); }
+    button {
+      padding: 0.55rem 1.25rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease-in-out;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #0f172a;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      color: #ffffff;
+    }
+    .banner {
+      padding: 0.65rem 1rem;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .banner.show { display: flex; }
+    .banner.success { background: #064e3b; color: #a7f3d0; border: 1px solid #059669; }
+    .banner.error { background: #7f1d1d; color: #fecaca; border: 1px solid #dc2626; }
+    .mode-tab {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .tab-btn {
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      background: #334155;
+      color: #e2e8f0;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      color: #0f172a;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <h1>⌨️ AutoTyper Universal Dashboard</h1>
+        <p>Send code from Laptop 1 to Laptop 2 across ANY network (different Wi-Fi, hotspot, etc.)</p>
+      </div>
+      <div class="mode-tab">
+        <span id="tabCloud" class="tab-btn active">☁️ Internet Cloud Room</span>
+        <span id="tabLocal" class="tab-btn">🏠 Same Wi-Fi</span>
+      </div>
+    </header>
+
+    <div class="network-bar">
+      <div id="cloudGroup" style="display: flex; align-items: center; gap: 0.5rem; flex-grow: 1;">
+        <label for="roomInput" style="color: var(--muted); font-size: 0.8rem; text-transform: uppercase;">Cloud Room Name:</label>
+        <input type="text" id="roomInput" class="input-field" value="autotyper-sync-room" style="flex-grow: 1;">
+      </div>
+      <div id="localGroup" style="display: none; align-items: center; gap: 0.5rem; flex-grow: 1;">
+        <label for="serverInput" style="color: var(--muted); font-size: 0.8rem; text-transform: uppercase;">Laptop 2 IP URL:</label>
+        <input type="text" id="serverInput" class="input-field" value="http://192.168.1.45:8765" style="flex-grow: 1;">
+      </div>
+    </div>
+
+    <div id="banner" class="banner"></div>
+
+    <div class="editor-card">
+      <div class="editor-header">
+        <span>Source Code / Text</span>
+        <span id="charCount">0 characters &bull; 0 lines</span>
+      </div>
+      <textarea id="editor" placeholder="Type or paste your code here... Laptop 2 will receive it anywhere in the world." spellcheck="false"></textarea>
+      <div class="editor-footer">
+        <label class="auto-sync-label">
+          <input type="checkbox" id="autoSync" checked>
+          <span>Auto-sync while typing (0.8s debounce)</span>
+        </label>
+        <button id="btnSync" class="btn-primary">🚀 Send to Laptop 2</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const editor = document.getElementById("editor");
+    const charCount = document.getElementById("charCount");
+    const btnSync = document.getElementById("btnSync");
+    const autoSync = document.getElementById("autoSync");
+    const roomInput = document.getElementById("roomInput");
+    const serverInput = document.getElementById("serverInput");
+    const tabCloud = document.getElementById("tabCloud");
+    const tabLocal = document.getElementById("tabLocal");
+    const cloudGroup = document.getElementById("cloudGroup");
+    const localGroup = document.getElementById("localGroup");
+    const banner = document.getElementById("banner");
+
+    let currentMode = "cloud";
+    let debounceTimer = null;
+
+    tabCloud.addEventListener("click", () => {
+      currentMode = "cloud";
+      tabCloud.classList.add("active");
+      tabLocal.classList.remove("active");
+      cloudGroup.style.display = "flex";
+      localGroup.style.display = "none";
+    });
+
+    tabLocal.addEventListener("click", () => {
+      currentMode = "local";
+      tabLocal.classList.add("active");
+      tabCloud.classList.remove("active");
+      localGroup.style.display = "flex";
+      cloudGroup.style.display = "none";
+    });
+
+    function updateCounts() {
+      const text = editor.value;
+      const chars = text.length;
+      const lines = text ? text.split("\\n").length : 0;
+      charCount.textContent = `${chars} characters • ${lines} lines`;
+    }
+
+    editor.addEventListener("keydown", function(e) {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
+        this.selectionStart = this.selectionEnd = start + 4;
+        updateCounts();
+      }
+    });
+
+    editor.addEventListener("input", () => {
+      updateCounts();
+      if (autoSync.checked) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          sendCode(false);
+        }, 800);
+      }
+    });
+
+    function showBanner(msg, type = "success") {
+      banner.textContent = msg;
+      banner.className = `banner show ${type}`;
+      setTimeout(() => {
+        banner.className = "banner";
+      }, 3500);
+    }
+
+    async function sendCode(showBannerMsg = true) {
+      const code = editor.value;
+      if (currentMode === "cloud") {
+        const room = roomInput.value.trim() || "autotyper-sync-room";
+        try {
+          const res = await fetch(`https://ntfy.sh/${encodeURIComponent(room)}`, {
+            method: "POST",
+            body: code,
+            headers: { "Title": "AutoTyper Sync" }
+          });
+          if (res.ok) {
+            if (showBannerMsg) showBanner(`✅ Sent ${code.length} characters to Cloud Room "${room}"!`, "success");
+          } else {
+            showBanner(`❌ Cloud send failed (HTTP ${res.status})`, "error");
+          }
+        } catch (err) {
+          showBanner("❌ Connection error: " + err.message, "error");
+        }
+      } else {
+        const rawServer = serverInput.value.trim().replace(/\\/+$/, "");
+        const url = rawServer.startsWith("http") ? rawServer : `http://${rawServer}`;
+        try {
+          const res = await fetch(`${url}/api/text`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: code })
+          });
+          const data = await res.json();
+          if (showBannerMsg) showBanner(`✅ Synced ${data.chars} chars to Laptop 2 locally!`, "success");
+        } catch (err) {
+          showBanner("❌ Local connection failed: " + err.message, "error");
+        }
+      }
+    }
+
+    btnSync.addEventListener("click", () => sendCode(true));
+  </script>
+</body>
+</html>

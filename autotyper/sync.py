@@ -690,6 +690,44 @@ def start_sync_server(typer, host="0.0.0.0", port=8765):
 # Client functions for Laptop 1 (Sender)
 # ---------------------------------------------------------------------------
 
+def publish_cloud(room, text, server_base=config.CLOUD_RELAY_URL):
+    """Publish text to the cloud sync room via HTTPS relay."""
+    url = f"{server_base.rstrip('/')}/{room}"
+    req = Request(url, data=text.encode("utf-8"), method="POST")
+    req.add_header("Title", "AutoTyper Sync")
+    with urlopen(req, timeout=10) as resp:
+        return {"status": "ok", "chars": len(text), "lines": len(text.splitlines())}
+
+
+def start_cloud_listener(typer, room=config.DEFAULT_CLOUD_ROOM, server_base=config.CLOUD_RELAY_URL):
+    """Start listening to the cloud room on a daemon thread for cross-network sync."""
+    def _loop():
+        url = f"{server_base.rstrip('/')}/{room}/json"
+        while True:
+            try:
+                req = Request(url)
+                with urlopen(req, timeout=60) as resp:
+                    for line in resp:
+                        data_str = line.decode("utf-8", errors="replace").strip()
+                        if not data_str:
+                            continue
+                        try:
+                            ev = json.loads(data_str)
+                            if ev.get("event") == "message":
+                                msg = ev.get("message", "")
+                                if msg:
+                                    print(f"\n[AutoTyper Cloud] Received text update from room '{room}' ({len(msg)} chars)")
+                                    typer.update_text(msg, save_file=True)
+                        except Exception:
+                            pass
+            except Exception:
+                time.sleep(3.0)
+
+    t = threading.Thread(target=_loop, daemon=True)
+    t.start()
+    return t
+
+
 def normalize_server_url(url):
     if not url.startswith("http://") and not url.startswith("https://"):
         url = "http://" + url
@@ -720,16 +758,16 @@ def send_file(server_url, file_path, timeout=5):
     return send_text(server_url, content, timeout=timeout)
 
 
-def watch_file(server_url, file_path, interval=0.5):
+def watch_file(server_url, file_path, interval=0.5, room=None):
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
 
-    base_url = normalize_server_url(server_url)
+    target_display = f"Cloud Room '{room}' (Works across different Wi-Fi networks!)" if room else normalize_server_url(server_url)
     print("=" * 60)
     print("AutoTyper File Watcher Active (Sender Mode)")
     print("=" * 60)
     print(f"Watching local file : {os.path.abspath(file_path)}")
-    print(f"Target Sync Server  : {base_url}")
+    print(f"Target Sync Target  : {target_display}")
     print("Whenever you save this file, it will sync to Laptop 2 instantly!")
     print("Press Ctrl+C to stop watching.\n")
 
@@ -746,7 +784,10 @@ def watch_file(server_url, file_path, interval=0.5):
                 if content != last_content:
                     last_content = content
                     try:
-                        res = send_text(base_url, content)
+                        if room:
+                            res = publish_cloud(room, content)
+                        else:
+                            res = send_text(base_url, content)
                         chars = res.get("chars", len(content))
                         lines = res.get("lines", len(content.splitlines()))
                         t_str = time.strftime("%H:%M:%S")

@@ -31,7 +31,12 @@ SMART_INDENT = True
 # Slightly vary the delay between keys so typing looks natural and never floods event queues.
 HUMAN_JITTER = True
 
-# Cross-Laptop Sync Server defaults
+# Local Sync Server defaults (for same Wi-Fi)
 SYNC_ENABLED = True
 SYNC_PORT = 8765
 SYNC_HOST = "0.0.0.0"
+
+# Cloud Sync Room (for different Wi-Fi / mobile networks / anywhere in the world)
+# Change this to any secret room name you like (e.g. "team-code-sync-7712")
+DEFAULT_CLOUD_ROOM = "autotyper-sync-room"
+CLOUD_RELAY_URL = "https://ntfy.sh"
