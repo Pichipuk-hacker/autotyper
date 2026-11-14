@@ -31,17 +31,21 @@ Hotkeys (Physical Keyboard on Laptop 2):
 ### Step 2: Send Code from Laptop 1 (Sender)
 
 #### If Laptops are on DIFFERENT Wi-Fi / Hotspot / Anywhere in the World:
-* **Option A (Web Browser — Zero Install):**
-  Open the Internet Room in any browser on Laptop 1 (or phone):
-  👉 **`https://ntfy.sh/autotyper-pichipuk-sync`**
-  Paste or type your code and click **Send**. Laptop 2 receives it instantly in under 0.2 seconds!
+* **Option A (Desktop 1-Click — Fastest & Easiest):**
+  Double-click **`Send_Code_Laptop1.bat`** on Laptop 1.
+  It opens Notepad. Simply paste your code, press `Ctrl + S`, close Notepad, and it immediately sends to Laptop 2!
 * **Option B (Universal Dashboard):**
-  Double-click **`dashboard.html`** on Laptop 1 in Chrome/Edge, paste code, and click **Send to Laptop 2**.
+  Double-click **`dashboard.html`** on Laptop 1 in Chrome/Edge.
+  Paste your code and click **`🚀 Send to Laptop 2`**. Laptop 2 plays a chime and loads the code instantly!
 * **Option C (Live File Watcher in VS Code / Notepad):**
   ```powershell
-  python autotyper.py watch "my_code.py" --room autotyper-pichipuk-sync
+  python autotyper.py watch "code.txt" --room autotyper-pichipuk-sync
   ```
   Every time you press `Ctrl + S` on Laptop 1, it automatically syncs to Laptop 2 over the internet!
+* **Option D (Direct Web Browser):**
+  Open the Cloud Room in any browser on Laptop 1 (or your mobile phone):
+  👉 **`https://ntfy.sh/autotyper-pichipuk-sync`**
+  Type/paste code and click Send.
 
 #### If Laptops are on the SAME Wi-Fi:
 * Open the Local URL (e.g. `http://192.168.1.45:8765`) in any browser on Laptop 1.
@@ -88,6 +92,7 @@ autotyper/
 └── pid.py          # Single-instance process lock
 
 dashboard.html      # Standalone sender dashboard for Laptop 1
+Send_Code_Laptop1.bat# 1-Click desktop sender for Laptop 1
 Start_AutoTyper.bat # Self-installing launcher for Laptop 2
 Update_AutoTyper.bat# 1-Click auto-updater from GitHub
 Setup_Laptop2.bat   # Standalone 1-click dependency installer

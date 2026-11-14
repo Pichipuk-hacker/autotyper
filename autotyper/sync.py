@@ -692,9 +692,8 @@ def start_sync_server(typer, host="0.0.0.0", port=8765):
 
 def publish_cloud(room, text, server_base=config.CLOUD_RELAY_URL):
     """Publish text to the cloud sync room via HTTPS relay."""
-    url = f"{server_base.rstrip('/')}/{room}"
+    url = f"{server_base.rstrip('/')}/{room}?title=AutoTyper+Sync"
     req = Request(url, data=text.encode("utf-8"), method="POST")
-    req.add_header("Title", "AutoTyper Sync")
     with urlopen(req, timeout=10) as resp:
         return {"status": "ok", "chars": len(text), "lines": len(text.splitlines())}
 
@@ -703,7 +702,7 @@ def start_cloud_listener(typer, room=config.DEFAULT_CLOUD_ROOM, server_base=conf
     """Start listening to the cloud room on a daemon thread for cross-network sync."""
     def _loop():
         # Only receive fresh messages sent after this session started (ignore old/stale test messages)
-        start_time = int(time.time())
+        start_time = int(time.time()) - 5
         url = f"{server_base.rstrip('/')}/{room}/json?since={start_time}"
         while True:
             try:

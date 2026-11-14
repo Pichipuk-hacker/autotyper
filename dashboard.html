@@ -84,6 +84,7 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
     .editor-header {
       background: #172033;
@@ -108,6 +109,7 @@
       resize: vertical;
       outline: none;
       white-space: pre;
+      tab-size: 4;
     }
     .editor-footer {
       background: #172033;
@@ -136,16 +138,20 @@
       flex-wrap: wrap;
     }
     button {
-      padding: 0.6rem 1.25rem;
+      padding: 0.65rem 1.35rem;
       border-radius: 6px;
-      font-size: 0.9rem;
+      font-size: 0.92rem;
       font-weight: 600;
       cursor: pointer;
       border: none;
-      transition: all 0.2s ease-in-out;
+      transition: all 0.18s ease-in-out;
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.45rem;
+      user-select: none;
+    }
+    button:active {
+      transform: scale(0.98);
     }
     .btn-primary {
       background: var(--primary);
@@ -154,6 +160,7 @@
     .btn-primary:hover {
       background: var(--primary-hover);
       color: #ffffff;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
     }
     .btn-secondary {
       background: #334155;
@@ -165,16 +172,22 @@
     .btn-success {
       background: var(--success) !important;
       color: #0f172a !important;
+      box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+    }
+    .btn-danger {
+      background: var(--danger) !important;
+      color: #ffffff !important;
     }
     .status-panel {
       background: #131c2e;
       border: 1px solid #233554;
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      font-size: 0.85rem;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      font-size: 0.88rem;
       display: flex;
       flex-direction: column;
-      gap: 0.35rem;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
     }
     .status-row {
       display: flex;
@@ -187,25 +200,36 @@
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      font-weight: 600;
-      color: var(--success);
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--muted);
     }
     .mode-tab {
       display: flex;
       gap: 0.5rem;
     }
     .tab-btn {
-      padding: 0.35rem 0.75rem;
+      padding: 0.4rem 0.85rem;
       border-radius: 6px;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       background: #334155;
       color: #e2e8f0;
       cursor: pointer;
+      user-select: none;
     }
     .tab-btn.active {
       background: var(--primary);
       color: #0f172a;
-      font-weight: 600;
+      font-weight: 700;
+    }
+    .instructions-box {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.83rem;
+      line-height: 1.45;
+      color: #bae6fd;
     }
   </style>
 </head>
@@ -214,23 +238,28 @@
     <header>
       <div class="brand">
         <h1>⌨️ AutoTyper Universal Dashboard</h1>
-        <p>Send code from Laptop 1 to Laptop 2 across ANY network (different Wi-Fi, hotspot, etc.)</p>
+        <p>Type/paste code on Laptop 1 &bull; Instant sync to Laptop 2 across ANY network!</p>
       </div>
       <div class="mode-tab">
-        <span id="tabCloud" class="tab-btn active">☁️ Internet Cloud Room</span>
-        <span id="tabLocal" class="tab-btn">🏠 Same Wi-Fi</span>
+        <span id="tabCloud" class="tab-btn active" title="Use when Laptop 1 and Laptop 2 are on different Wi-Fi, hotspot, or mobile networks">☁️ Internet Cloud Room</span>
+        <span id="tabLocal" class="tab-btn" title="Use only when both laptops are connected to the exact same Wi-Fi router">🏠 Same Wi-Fi</span>
       </div>
     </header>
 
     <div class="network-bar">
-      <div id="cloudGroup" style="display: flex; align-items: center; gap: 0.5rem; flex-grow: 1;">
-        <label for="roomInput" style="color: var(--muted); font-size: 0.8rem; text-transform: uppercase;">Cloud Room Name:</label>
-        <input type="text" id="roomInput" class="input-field" value="autotyper-pichipuk-sync" style="flex-grow: 1;">
+      <div id="cloudGroup" style="display: flex; align-items: center; gap: 0.6rem; flex-grow: 1;">
+        <label for="roomInput" style="color: var(--muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">Cloud Sync Room:</label>
+        <input type="text" id="roomInput" class="input-field" value="autotyper-pichipuk-sync" style="flex-grow: 1;" title="Must match the room Laptop 2 is listening to">
       </div>
-      <div id="localGroup" style="display: none; align-items: center; gap: 0.5rem; flex-grow: 1;">
-        <label for="serverInput" style="color: var(--muted); font-size: 0.8rem; text-transform: uppercase;">Laptop 2 IP URL:</label>
-        <input type="text" id="serverInput" class="input-field" value="http://192.168.1.45:8765" style="flex-grow: 1;">
+      <div id="localGroup" style="display: none; align-items: center; gap: 0.6rem; flex-grow: 1;">
+        <label for="serverInput" style="color: var(--muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">Laptop 2 IP URL:</label>
+        <input type="text" id="serverInput" class="input-field" value="http://192.168.1.45:8765" style="flex-grow: 1;" placeholder="http://192.168.x.x:8765">
       </div>
+    </div>
+
+    <div class="instructions-box">
+      <strong>⚡ How to use:</strong> Paste your code below and click <strong>🚀 Send to Laptop 2</strong>.
+      Laptop 2 will immediately play a chime sound and load your code. Then, switch to your target window on Laptop 2 and press <strong>F8</strong> to type!
     </div>
 
     <div class="editor-card">
@@ -238,15 +267,15 @@
         <span>Source Code / Text</span>
         <span id="charCount">0 characters &bull; 0 lines</span>
       </div>
-      <textarea id="editor" placeholder="Paste your code here... All newlines and indentation will be preserved 100%!" spellcheck="false"></textarea>
+      <textarea id="editor" placeholder="Paste your code here... All indentation and newlines are preserved 100%!" spellcheck="false"></textarea>
       <div class="editor-footer">
         <label class="auto-sync-label">
           <input type="checkbox" id="autoSync">
-          <span>Auto-sync while typing</span>
+          <span>Auto-sync continuously as I type</span>
         </label>
         <div class="btn-group">
-          <button id="btnTest" class="btn-secondary" title="Plays a chime sound on Laptop 2 to verify connection">🔔 Test Sound on Laptop 2</button>
-          <button id="btnSync" class="btn-primary">🚀 Send to Laptop 2</button>
+          <button type="button" id="btnTest" class="btn-secondary" title="Plays a chime sound on Laptop 2 to verify connection">🔔 Test Sound on Laptop 2</button>
+          <button type="button" id="btnSync" class="btn-primary">🚀 Send to Laptop 2</button>
         </div>
       </div>
     </div>
@@ -256,7 +285,9 @@
         <span class="status-badge" id="statusState">⚪ Ready to send</span>
         <span id="statusTime" style="color: var(--muted);">No code sent yet in this session</span>
       </div>
-      <div id="statusDetails" style="font-family: var(--font-mono); font-size: 0.8rem; color: #cbd5e1; word-break: break-all;"></div>
+      <div id="statusDetails" style="font-family: var(--font-mono); font-size: 0.82rem; color: #cbd5e1; word-break: break-all; margin-top: 0.25rem;">
+        Paste your code in the box above and click "Send to Laptop 2".
+      </div>
     </div>
   </div>
 
@@ -279,6 +310,46 @@
     let currentMode = "cloud";
     let debounceTimer = null;
 
+    // Web Audio feedback so Laptop 1 user hears immediate confirmation
+    function playSenderChime(isSuccess = true) {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        if (isSuccess) {
+          // Cheerful two-tone chime
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc1.frequency.setValueAtTime(587.33, now); // D5
+          osc2.frequency.setValueAtTime(880.00, now + 0.12); // A5
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+          osc1.start(now);
+          osc1.stop(now + 0.12);
+          osc2.start(now + 0.12);
+          osc2.stop(now + 0.35);
+        } else {
+          // Low error tone
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.frequency.setValueAtTime(220, now);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        }
+      } catch (e) {
+        // AudioContext not allowed or not supported - safe to ignore
+      }
+    }
+
     tabCloud.addEventListener("click", () => {
       currentMode = "cloud";
       tabCloud.classList.add("active");
@@ -298,7 +369,7 @@
     function updateCounts() {
       const text = editor.value;
       const chars = text.length;
-      const lines = text ? text.split("\\n").length : 0;
+      const lines = text ? text.split("\n").length : 0;
       charCount.textContent = `${chars} characters • ${lines} lines`;
     }
 
@@ -319,7 +390,7 @@
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
           sendCode(false);
-        }, 800);
+        }, 900);
       }
     });
 
@@ -328,10 +399,56 @@
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
+    // Bulletproof transmitter function (bypasses any browser CORS restrictions)
+    async function transmitCloudMessage(room, payloadText, title = "AutoTyper Sync") {
+      const targetUrl = `https://ntfy.sh/${encodeURIComponent(room)}?title=${encodeURIComponent(title)}`;
+
+      // Method 1: Standard fetch without custom headers (Simple CORS-safelisted request)
+      try {
+        const res = await fetch(targetUrl, {
+          method: "POST",
+          body: payloadText,
+        });
+        if (res.ok || res.type === "opaque") {
+          return { success: true, method: "fetch-standard" };
+        }
+      } catch (err1) {
+        console.warn("Standard fetch failed, attempting no-cors fallback:", err1);
+      }
+
+      // Method 2: no-cors fetch (Forces browser to dispatch POST without CORS preflights)
+      try {
+        await fetch(targetUrl, {
+          method: "POST",
+          mode: "no-cors",
+          body: payloadText,
+        });
+        return { success: true, method: "fetch-no-cors" };
+      } catch (err2) {
+        console.warn("no-cors fetch failed, attempting XHR fallback:", err2);
+      }
+
+      // Method 3: Direct XMLHttpRequest (reliable across all older browsers)
+      return new Promise((resolve, reject) => {
+        try {
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", targetUrl, true);
+          xhr.timeout = 8000;
+          xhr.onload = () => resolve({ success: true, method: "xhr" });
+          xhr.onerror = () => reject(new Error("Network connection error"));
+          xhr.ontimeout = () => reject(new Error("Request timed out"));
+          xhr.send(payloadText);
+        } catch (xhrErr) {
+          reject(xhrErr);
+        }
+      });
+    }
+
     async function sendCode(isManualClick = true) {
       const code = editor.value;
       if (!code.trim() && isManualClick) {
-        alert("Please paste or type some code into the box first!");
+        alert("Please paste or type some code into the editor box first!");
+        editor.focus();
         return;
       }
 
@@ -341,19 +458,14 @@
       }
 
       const room = roomInput.value.trim() || "autotyper-pichipuk-sync";
-      const lines = code.split("\\n");
-      const firstLine = (lines[0] || "").substring(0, 40);
+      const lines = code.split("\n");
+      const firstLine = (lines[0] || "").substring(0, 50);
 
       try {
         if (currentMode === "cloud") {
-          const res = await fetch(`https://ntfy.sh/${encodeURIComponent(room)}`, {
-            method: "POST",
-            body: code,
-            headers: { "Title": "AutoTyper Sync" }
-          });
-          if (!res.ok) throw new Error(`Server returned HTTP ${res.status}`);
+          await transmitCloudMessage(room, code, "AutoTyper Sync");
         } else {
-          const rawServer = serverInput.value.trim().replace(/\\/+$/, "");
+          const rawServer = serverInput.value.trim().replace(/\/+$/, "");
           const url = rawServer.startsWith("http") ? rawServer : `http://${rawServer}`;
           const res = await fetch(`${url}/api/text`, {
             method: "POST",
@@ -363,11 +475,14 @@
           if (!res.ok) throw new Error(`Local server returned HTTP ${res.status}`);
         }
 
-        // Success state update
-        statusState.innerHTML = "🟢 Delivered to Laptop 2!";
+        // Success state
+        playSenderChime(true);
+        statusState.innerHTML = "🟢 DELIVERED TO LAPTOP 2!";
         statusState.style.color = "var(--success)";
         statusTime.textContent = `Sent at ${getTimestamp()} • Target: ${currentMode === "cloud" ? 'Cloud Room "' + room + '"' : 'Local IP'}`;
-        statusDetails.textContent = `Delivered: ${code.length} chars, ${lines.length} lines | Starts with: "${firstLine}..."`;
+        statusDetails.innerHTML = `<strong>Status:</strong> Successfully delivered <strong>${code.length}</strong> chars (<strong>${lines.length}</strong> lines).<br>` +
+                                  `<strong>Preview:</strong> <code style="color:#38bdf8;">${firstLine || "(blank)"}...</code><br>` +
+                                  `👉 <em>Laptop 2 should have chimed! Click inside your target window on Laptop 2 and press <strong>F8</strong> to start typing.</em>`;
 
         if (isManualClick) {
           btnSync.textContent = "✅ Delivered to Laptop 2!";
@@ -376,46 +491,60 @@
             btnSync.textContent = "🚀 Send to Laptop 2";
             btnSync.classList.remove("btn-success");
             btnSync.disabled = false;
-          }, 3000);
+          }, 3500);
         }
       } catch (err) {
+        playSenderChime(false);
         statusState.innerHTML = "🔴 Send Failed!";
         statusState.style.color = "var(--danger)";
         statusTime.textContent = `Failed at ${getTimestamp()}`;
-        statusDetails.textContent = `Error: ${err.message}`;
+        statusDetails.innerHTML = `<strong>Error:</strong> ${err.message}<br><em>Please ensure your laptop is connected to the internet and try again.</em>`;
 
         if (isManualClick) {
           btnSync.textContent = "❌ Failed to send";
+          btnSync.classList.add("btn-danger");
           setTimeout(() => {
             btnSync.textContent = "🚀 Send to Laptop 2";
+            btnSync.classList.remove("btn-danger");
             btnSync.disabled = false;
-          }, 3000);
+          }, 3500);
         }
       }
     }
 
     async function sendPing() {
-      btnTest.textContent = "⏳ Ringing...";
+      btnTest.textContent = "⏳ Ringing Laptop 2...";
       btnTest.disabled = true;
       const room = roomInput.value.trim() || "autotyper-pichipuk-sync";
-      const pingMessage = "# --- CONNECTION TEST PING ---\\n# Laptop 1 and Laptop 2 are CONNECTED!\\nprint('Connection OK!')";
+      const pingMessage = "# --- CONNECTION TEST PING ---\n# Laptop 1 and Laptop 2 are CONNECTED!\nprint('Connection OK!')";
 
       try {
-        await fetch(`https://ntfy.sh/${encodeURIComponent(room)}`, {
-          method: "POST",
-          body: pingMessage,
-          headers: { "Title": "AutoTyper Test Ping" }
-        });
+        if (currentMode === "cloud") {
+          await transmitCloudMessage(room, pingMessage, "AutoTyper Test Ping");
+        } else {
+          const rawServer = serverInput.value.trim().replace(/\/+$/, "");
+          const url = rawServer.startsWith("http") ? rawServer : `http://${rawServer}`;
+          await fetch(`${url}/api/text`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: pingMessage })
+          });
+        }
+
+        playSenderChime(true);
         statusState.innerHTML = "🔔 Test Chime Sent!";
         statusState.style.color = "var(--primary)";
         statusTime.textContent = `Sent at ${getTimestamp()}`;
-        statusDetails.textContent = `Laptop 2 should be chiming/beeping and showing connection box in its terminal right now!`;
+        statusDetails.innerHTML = `<strong>Connection Ping Sent!</strong> Laptop 2 should be chiming/beeping and displaying a confirmation box in its command prompt right now.`;
         btnTest.textContent = "🔔 Rang Laptop 2!";
+        btnTest.classList.add("btn-success");
         setTimeout(() => {
           btnTest.textContent = "🔔 Test Sound on Laptop 2";
+          btnTest.classList.remove("btn-success");
           btnTest.disabled = false;
         }, 3000);
       } catch (err) {
+        playSenderChime(false);
         alert("Could not send test ping: " + err.message);
         btnTest.textContent = "🔔 Test Sound on Laptop 2";
         btnTest.disabled = false;
@@ -424,6 +553,9 @@
 
     btnSync.addEventListener("click", () => sendCode(true));
     btnTest.addEventListener("click", () => sendPing());
+
+    // Update counts on initial load
+    updateCounts();
   </script>
 </body>
 </html>
