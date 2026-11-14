@@ -50,7 +50,7 @@ class AutoTyper:
         if os.path.exists(self.file_path):
             try:
                 with open(self.file_path, "r", encoding="utf-8") as f:
-                    content = f.read().replace("\r\n", "\n").replace("\r", "\n")
+                    content = f.read().replace("\r\n", "\n").replace("\r", "\n").replace("\t", " " * config.TAB_WIDTH)
                 if content.strip():
                     return content
                 print(f"[AutoTyper] Warning: {self.file_path} is empty; using fallback text.")
@@ -238,9 +238,8 @@ class AutoTyper:
                 if ch == "\n":
                     self._newline()
                     ok = True
-                elif ch == "\t" and line_start:
-                    # Typing Tab with a selection can indent the whole line in
-                    # some IDEs; emit spaces instead.
+                elif ch == "\t":
+                    # Always emit spaces instead of raw Tab so browser focus never jumps
                     ok = True
                     for _ in range(config.TAB_WIDTH):
                         ok = self._type_char(" ") and ok
@@ -352,7 +351,7 @@ class AutoTyper:
         notify.notify(msg)
 
     def update_text(self, new_text, save_file=True):
-        cleaned = (new_text or "").replace("\r\n", "\n").replace("\r", "\n")
+        cleaned = (new_text or "").replace("\r\n", "\n").replace("\r", "\n").replace("\t", " " * config.TAB_WIDTH)
         with self.cond:
             self.text = cleaned
             if self.state == "STOPPED":

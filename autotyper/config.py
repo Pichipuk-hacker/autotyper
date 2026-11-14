@@ -24,9 +24,10 @@ PID_FILE = os.path.expanduser("~/.autotyper.pid")
 # Spaces per indent level (used when the file uses tabs)
 TAB_WIDTH = 4
 
-# SMART_INDENT: True by default. Safely clears the editor's auto-inserted indentation
-# so that indentation exactly matches the source file without double-indentation.
-SMART_INDENT = True
+# SMART_INDENT: False by default. Perfect for online assessment portals,
+# web code boxes, and browser tests where indentation should be typed exactly
+# as written in the source code without stripping.
+SMART_INDENT = False
 
 # Slightly vary the delay between keys so typing looks natural and never floods event queues.
 HUMAN_JITTER = True
