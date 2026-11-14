@@ -133,24 +133,29 @@ class AutoTyper:
 
     def _newline(self):
         with self._xlock:
+            # 1. Tap Enter
             self._tap_vk(VK_RETURN)
-            # Give target editor breathing room to process newline
-            time.sleep(0.040)
+            # 2. Critical pause: Give target editor time to create new line & auto-indent
+            time.sleep(0.045)
 
             if config.SMART_INDENT:
-                # Safely delete auto-inserted indentation on the current line:
-                # Shift+Home selects back to column 0 on the CURRENT line, then Backspace deletes it.
-                # Never selects forward or touches previous lines.
-                events = [
-                    make_vk_input(VK_LSHIFT, False),
-                    make_vk_input(VK_HOME, False),
-                    make_vk_input(VK_HOME, True),
-                    make_vk_input(VK_LSHIFT, True),
-                    make_vk_input(VK_BACK, False),
-                    make_vk_input(VK_BACK, True),
-                ]
-                send_inputs(events)
-                time.sleep(0.015)
+                # Check if the next character is another newline (i.e. empty line)
+                next_char = self.text[self.index + 1] if (self.index + 1 < len(self.text)) else None
+                if next_char is not None and next_char != "\n":
+                    # On a non-empty line: Home to column 0, Shift+End to highlight auto-indent.
+                    # The file's own indentation or code will immediately overwrite the selection.
+                    events = [
+                        make_vk_input(VK_HOME, False),
+                        make_vk_input(VK_HOME, True),
+                        make_vk_input(VK_HOME, False),
+                        make_vk_input(VK_HOME, True),
+                        make_vk_input(VK_LSHIFT, False),
+                        make_vk_input(VK_END, False),
+                        make_vk_input(VK_END, True),
+                        make_vk_input(VK_LSHIFT, True),
+                    ]
+                    send_inputs(events)
+                    time.sleep(0.015)
 
     def _wait_for_modifiers_release(self):
         # Wait up to 1.5s for user to physically release start/resume hotkeys.

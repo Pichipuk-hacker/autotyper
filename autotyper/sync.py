@@ -371,9 +371,9 @@ def get_dashboard_html():
           </select>
         </div>
         <div class="setting-group">
-          <label class="auto-sync-label" title="Keep OFF for browser editors and tests to prevent deleted lines">
-            <input type="checkbox" id="smartIndent">
-            <span>Strip IDE auto-indent (Keep OFF for web/browser editors)</span>
+          <label class="auto-sync-label" title="Replaces editor auto-indentation with the file's exact indentation">
+            <input type="checkbox" id="smartIndent" checked>
+            <span>Smart Indent (Fixes double-indentation in IDEs & code editors)</span>
           </label>
         </div>
       </div>
