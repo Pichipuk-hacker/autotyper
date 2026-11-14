@@ -8,6 +8,7 @@ import time
 
 from . import config, hotkeys, notify
 from .win32_input import (
+    VK_BACK,
     VK_END,
     VK_HOME,
     VK_LCONTROL,
@@ -49,7 +50,7 @@ class AutoTyper:
         if os.path.exists(self.file_path):
             try:
                 with open(self.file_path, "r", encoding="utf-8") as f:
-                    content = f.read().replace("\r\n", "\n")
+                    content = f.read().replace("\r\n", "\n").replace("\r", "\n")
                 if content.strip():
                     return content
                 print(f"[AutoTyper] Warning: {self.file_path} is empty; using fallback text.")
@@ -132,22 +133,24 @@ class AutoTyper:
 
     def _newline(self):
         with self._xlock:
-            if not config.SMART_INDENT:
-                self._tap_vk(VK_RETURN)
-                return
-            events = [
-                make_vk_input(VK_RETURN, False),
-                make_vk_input(VK_RETURN, True),
-                make_vk_input(VK_HOME, False),
-                make_vk_input(VK_HOME, True),
-                make_vk_input(VK_HOME, False),
-                make_vk_input(VK_HOME, True),
-                make_vk_input(VK_LSHIFT, False),
-                make_vk_input(VK_END, False),
-                make_vk_input(VK_END, True),
-                make_vk_input(VK_LSHIFT, True),
-            ]
-            send_inputs(events)
+            self._tap_vk(VK_RETURN)
+            # Give target editor breathing room to process newline
+            time.sleep(0.040)
+
+            if config.SMART_INDENT:
+                # Safely delete auto-inserted indentation on the current line:
+                # Shift+Home selects back to column 0 on the CURRENT line, then Backspace deletes it.
+                # Never selects forward or touches previous lines.
+                events = [
+                    make_vk_input(VK_LSHIFT, False),
+                    make_vk_input(VK_HOME, False),
+                    make_vk_input(VK_HOME, True),
+                    make_vk_input(VK_LSHIFT, True),
+                    make_vk_input(VK_BACK, False),
+                    make_vk_input(VK_BACK, True),
+                ]
+                send_inputs(events)
+                time.sleep(0.015)
 
     def _wait_for_modifiers_release(self):
         # Wait up to 1.5s for user to physically release start/resume hotkeys.
@@ -330,12 +333,21 @@ class AutoTyper:
             delay = self.delay
         cps = 1.0 / delay if delay > 0 else 0
         direction = "Slower" if delta > 0 else "Faster"
-        msg = f"Delay: {delay:.2f}s (~{cps:.1f} chars/s) [{direction}]"
+        msg = f"Delay: {delay:.3f}s (~{cps:.1f} chars/s) [{direction}]"
+        print(f"[AutoTyper] {msg}")
+        notify.notify(msg)
+
+    def set_delay(self, val):
+        with self.cond:
+            self.delay = round(max(0.001, min(1.0, float(val))), 4)
+            delay = self.delay
+        cps = 1.0 / delay if delay > 0 else 0
+        msg = f"Delay set to {delay:.3f}s (~{cps:.1f} chars/s)"
         print(f"[AutoTyper] {msg}")
         notify.notify(msg)
 
     def update_text(self, new_text, save_file=True):
-        cleaned = (new_text or "").replace("\r\n", "\n")
+        cleaned = (new_text or "").replace("\r\n", "\n").replace("\r", "\n")
         with self.cond:
             self.text = cleaned
             if self.state == "STOPPED":
@@ -369,4 +381,5 @@ class AutoTyper:
                 "chars_per_sec": cps,
                 "file_path": self.file_path,
                 "progress_percent": prog,
+                "smart_indent": config.SMART_INDENT,
             }

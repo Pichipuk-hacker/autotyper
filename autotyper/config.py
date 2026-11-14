@@ -11,8 +11,10 @@ FALLBACK_TEXT = """def hello():
 
 hello()"""
 
-# Delay between characters in seconds (0.04 = fast, 0.06 = moderate, 0.10 = slow)
-CHAR_DELAY = 0.001
+# Delay between characters in seconds.
+# 0.015s = ~65 chars/s (Fast, rock-solid, and never drops lines or buffer overflows)
+# Can be adjusted on-the-fly via Web Dashboard, Alt + = / Alt + -, or CLI.
+CHAR_DELAY = 0.015
 
 # Countdown in seconds before typing starts
 COUNTDOWN_SECONDS = 5
@@ -21,10 +23,13 @@ PID_FILE = os.path.expanduser("~/.autotyper.pid")
 
 # Spaces per indent level (used when the file uses tabs)
 TAB_WIDTH = 4
-# After Enter, delete the IDE's auto-inserted indentation so the file's own
-# leading whitespace is used instead. Set False if your editor misbehaves.
-SMART_INDENT = True
-# Slightly vary the delay between keys so typing looks less mechanical.
+
+# SMART_INDENT: False by default for universal compatibility across web browsers,
+# online test portals, code editors, and remote desktops. When enabled, it safely
+# clears auto-inserted indentation after Enter using Shift+Home + Backspace.
+SMART_INDENT = False
+
+# Slightly vary the delay between keys so typing looks natural and never floods event queues.
 HUMAN_JITTER = True
 
 # Cross-Laptop Sync Server defaults

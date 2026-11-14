@@ -3,7 +3,7 @@
 Provides:
 - Embedded HTTP sync server on Laptop 2 (Receiver)
 - Zero-install Web Dashboard for Laptop 1 (Sender)
-- REST API for text sync and status monitoring
+- REST API for text sync, speed controls, and status monitoring
 - File watcher and CLI pusher for Laptop 1
 """
 
@@ -18,13 +18,13 @@ from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+from . import config
+
 
 def get_lan_ip():
     """Discover the machine's primary local LAN IPv4 address."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        # Connecting to a public address routes via the primary network interface
-        # without actually sending any packet.
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
     except Exception:
@@ -213,7 +213,7 @@ def get_dashboard_html():
       align-items: center;
       gap: 0.5rem;
     }
-    button {
+    button, select {
       padding: 0.55rem 1.1rem;
       border-radius: 6px;
       font-size: 0.88rem;
@@ -224,6 +224,12 @@ def get_dashboard_html():
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
+    }
+    select {
+      background: #172033;
+      color: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 0.45rem 0.8rem;
     }
     .btn-primary {
       background: var(--primary);
@@ -255,7 +261,7 @@ def get_dashboard_html():
       padding: 1rem 1.25rem;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 0.85rem;
     }
     .controls-title {
       font-size: 0.85rem;
@@ -263,6 +269,20 @@ def get_dashboard_html():
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid #293548;
+    }
+    .setting-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
     }
     .controls-row {
       display: flex;
@@ -309,8 +329,8 @@ def get_dashboard_html():
         <span id="statProgress" class="stat-value">0 / 0 chars (0%)</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">Speed</span>
-        <span id="statSpeed" class="stat-value">~1000 chars/s</span>
+        <span class="stat-label">Current Speed</span>
+        <span id="statSpeed" class="stat-value">~65 chars/s</span>
       </div>
       <div class="stat-item">
         <span class="stat-label">Receiver File</span>
@@ -339,7 +359,26 @@ def get_dashboard_html():
     </div>
 
     <div class="controls-card">
-      <div class="controls-title">Remote Control (Optional)</div>
+      <div class="controls-title">Settings & Tuning</div>
+      <div class="settings-row">
+        <div class="setting-group">
+          <label for="speedPreset" style="color: var(--muted);">Typing Speed:</label>
+          <select id="speedPreset">
+            <option value="0.015" selected>⚡ Reliable (~65 chars/s) [Recommended]</option>
+            <option value="0.010">🚀 Fast (~100 chars/s)</option>
+            <option value="0.003">🏎️ Turbo (~300 chars/s)</option>
+            <option value="0.050">🐢 Human (~20 chars/s)</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label class="auto-sync-label" title="Keep OFF for browser editors and tests to prevent deleted lines">
+            <input type="checkbox" id="smartIndent">
+            <span>Strip IDE auto-indent (Keep OFF for web/browser editors)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="controls-title" style="margin-top: 0.25rem;">Remote Controls</div>
       <div class="controls-row">
         <button id="btnToggle" class="btn-secondary">⏯️ Toggle Start / Pause</button>
         <button id="btnStop" class="btn-danger">⏹️ Emergency Stop</button>
@@ -347,7 +386,7 @@ def get_dashboard_html():
         <button id="btnFaster" class="btn-secondary">⚡ Faster</button>
       </div>
       <p class="hint">
-        💡 <strong>Key note:</strong> The person sitting at Laptop 2 can also start, pause, or resume anytime by pressing <strong>F8</strong> or <strong>Ctrl + Alt + Space</strong> directly on their keyboard!
+        💡 <strong>Pro-Tip:</strong> The person on Laptop 2 can start, pause, or resume anytime by pressing <strong>F8</strong> or <strong>Ctrl + Alt + Space</strong> directly on their physical keyboard!
       </p>
     </div>
   </div>
@@ -361,6 +400,8 @@ def get_dashboard_html():
     const btnStop = document.getElementById("btnStop");
     const btnSlower = document.getElementById("btnSlower");
     const btnFaster = document.getElementById("btnFaster");
+    const speedPreset = document.getElementById("speedPreset");
+    const smartIndent = document.getElementById("smartIndent");
     const autoSync = document.getElementById("autoSync");
     const statusBadge = document.getElementById("statusBadge");
     const statusText = document.getElementById("statusText");
@@ -379,7 +420,6 @@ def get_dashboard_html():
       charCount.textContent = `${chars} characters • ${lines} lines`;
     }
 
-    // Support Tab indenting inside textarea
     editor.addEventListener("keydown", function(e) {
       if (e.key === "Tab") {
         e.preventDefault();
@@ -441,12 +481,13 @@ def get_dashboard_html():
       }
     }
 
-    async function sendAction(action) {
+    async function sendAction(action, payload = {}) {
       try {
+        const bodyObj = Object.assign({ action: action }, payload);
         const res = await fetch("/api/action", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: action })
+          body: JSON.stringify(bodyObj)
         });
         const data = await res.json();
         if (data.status_info) {
@@ -457,6 +498,18 @@ def get_dashboard_html():
       }
     }
 
+    speedPreset.addEventListener("change", () => {
+      const val = parseFloat(speedPreset.value);
+      sendAction("set_delay", { delay: val });
+      showBanner(`⚡ Speed updated to ~${Math.round(1/val)} chars/sec`, "success");
+    });
+
+    smartIndent.addEventListener("change", () => {
+      const val = smartIndent.checked;
+      sendAction("set_smart_indent", { enabled: val });
+      showBanner(`Indent cleanup ${val ? "Enabled" : "Disabled (Safe)"}`, "success");
+    });
+
     function applyStatus(info) {
       statusBadge.className = `badge ${info.state || "STOPPED"}`;
       statusText.textContent = info.state || "STOPPED";
@@ -464,6 +517,9 @@ def get_dashboard_html():
       statSpeed.textContent = `~${info.chars_per_sec || 0} chars/s (${info.delay}s)`;
       if (info.file_path) {
         statFile.textContent = info.file_path;
+      }
+      if (info.smart_indent !== undefined) {
+        smartIndent.checked = Boolean(info.smart_indent);
       }
     }
 
@@ -490,7 +546,6 @@ def get_dashboard_html():
     btnSlower.addEventListener("click", () => sendAction("slower"));
     btnFaster.addEventListener("click", () => sendAction("faster"));
 
-    // Initial load & periodic polling
     fetchInitialText();
     pollStatus();
     setInterval(pollStatus, 1000);
@@ -502,7 +557,7 @@ def get_dashboard_html():
 class SyncHandler(BaseHTTPRequestHandler):
     """HTTP request handler for AutoTyper sync."""
 
-    typer = None  # Reference to the AutoTyper instance
+    typer = None
 
     def _set_headers(self, status=200, content_type="application/json; charset=utf-8"):
         self.send_response(status)
@@ -530,7 +585,7 @@ class SyncHandler(BaseHTTPRequestHandler):
             if self.typer is not None:
                 info = self.typer.get_status()
             else:
-                info = {"state": "STOPPED", "index": 0, "total": 0, "delay": 0.001}
+                info = {"state": "STOPPED", "index": 0, "total": 0, "delay": config.CHAR_DELAY}
             payload = json.dumps(info).encode("utf-8")
             self._set_headers(200)
             self.wfile.write(payload)
@@ -581,6 +636,7 @@ class SyncHandler(BaseHTTPRequestHandler):
 
         if path == "/api/action":
             action = ""
+            data = {}
             try:
                 data = json.loads(body.decode("utf-8", errors="replace"))
                 action = data.get("action", "").lower()
@@ -593,9 +649,14 @@ class SyncHandler(BaseHTTPRequestHandler):
                 elif action in ("cancel", "stop"):
                     self.typer.cancel()
                 elif action == "slower":
-                    self.typer.adjust_delay(+0.02)
+                    self.typer.adjust_delay(+0.01)
                 elif action == "faster":
-                    self.typer.adjust_delay(-0.02)
+                    self.typer.adjust_delay(-0.01)
+                elif action == "set_delay":
+                    delay_val = float(data.get("delay", config.CHAR_DELAY))
+                    self.typer.set_delay(delay_val)
+                elif action == "set_smart_indent":
+                    config.SMART_INDENT = bool(data.get("enabled", False))
 
             info = self.typer.get_status() if self.typer else {}
             response = json.dumps({"status": "ok", "action": action, "status_info": info}).encode("utf-8")
@@ -607,23 +668,16 @@ class SyncHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps({"error": "Not Found"}).encode("utf-8"))
 
     def log_message(self, format, *args):
-        # Suppress routine GET polling requests from cluttering the terminal
         if args and len(args) > 0 and str(args[0]).startswith("GET /api/status"):
             return
         super().log_message(format, *args)
 
 
 class ThreadedSyncServer(HTTPServer):
-    """Simple HTTP server with daemon request threads."""
     daemon_threads = True
 
 
 def start_sync_server(typer, host="0.0.0.0", port=8765):
-    """Start the sync HTTP server on a daemon thread.
-
-    Returns:
-        (server, lan_ip, port)
-    """
     SyncHandler.typer = typer
     server = ThreadedSyncServer((host, port), SyncHandler)
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -637,14 +691,12 @@ def start_sync_server(typer, host="0.0.0.0", port=8765):
 # ---------------------------------------------------------------------------
 
 def normalize_server_url(url):
-    """Normalize server URL to ensure scheme and strip trailing slash."""
     if not url.startswith("http://") and not url.startswith("https://"):
         url = "http://" + url
     return url.rstrip("/")
 
 
 def send_text(server_url, text, timeout=5):
-    """Send text directly to the AutoTyper sync server."""
     base_url = normalize_server_url(server_url)
     endpoint = f"{base_url}/api/text"
     payload = json.dumps({"text": text}).encode("utf-8")
@@ -661,7 +713,6 @@ def send_text(server_url, text, timeout=5):
 
 
 def send_file(server_url, file_path, timeout=5):
-    """Read a local file on Laptop 1 and send it to Laptop 2."""
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
     with open(file_path, "r", encoding="utf-8") as f:
@@ -670,7 +721,6 @@ def send_file(server_url, file_path, timeout=5):
 
 
 def watch_file(server_url, file_path, interval=0.5):
-    """Watch a local file on Laptop 1 and sync to Laptop 2 on every save."""
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
 
