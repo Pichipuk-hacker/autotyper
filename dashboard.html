@@ -196,7 +196,7 @@
     <div class="network-bar">
       <div id="cloudGroup" style="display: flex; align-items: center; gap: 0.5rem; flex-grow: 1;">
         <label for="roomInput" style="color: var(--muted); font-size: 0.8rem; text-transform: uppercase;">Cloud Room Name:</label>
-        <input type="text" id="roomInput" class="input-field" value="autotyper-sync-room" style="flex-grow: 1;">
+        <input type="text" id="roomInput" class="input-field" value="autotyper-pichipuk-sync" style="flex-grow: 1;">
       </div>
       <div id="localGroup" style="display: none; align-items: center; gap: 0.5rem; flex-grow: 1;">
         <label for="serverInput" style="color: var(--muted); font-size: 0.8rem; text-transform: uppercase;">Laptop 2 IP URL:</label>
@@ -293,7 +293,7 @@
     async function sendCode(showBannerMsg = true) {
       const code = editor.value;
       if (currentMode === "cloud") {
-        const room = roomInput.value.trim() || "autotyper-sync-room";
+        const room = roomInput.value.trim() || "autotyper-pichipuk-sync";
         try {
           const res = await fetch(`https://ntfy.sh/${encodeURIComponent(room)}`, {
             method: "POST",

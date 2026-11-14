@@ -702,7 +702,9 @@ def publish_cloud(room, text, server_base=config.CLOUD_RELAY_URL):
 def start_cloud_listener(typer, room=config.DEFAULT_CLOUD_ROOM, server_base=config.CLOUD_RELAY_URL):
     """Start listening to the cloud room on a daemon thread for cross-network sync."""
     def _loop():
-        url = f"{server_base.rstrip('/')}/{room}/json"
+        # Only receive fresh messages sent after this session started (ignore old/stale test messages)
+        start_time = int(time.time())
+        url = f"{server_base.rstrip('/')}/{room}/json?since={start_time}"
         while True:
             try:
                 req = Request(url)

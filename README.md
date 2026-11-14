@@ -17,7 +17,7 @@ AutoTyper Active & Listening (Dual Network: Local + Internet)
 ============================================================
 Reading from        : C:\Users\Username\autotype_text.txt
 Local Wi-Fi URL     : http://192.168.1.45:8765 (If both laptops are on same Wi-Fi)
-Internet Cloud Room : https://ntfy.sh/autotyper-sync-room (If on DIFFERENT Wi-Fi / anywhere!)
+Internet Cloud Room : https://ntfy.sh/autotyper-pichipuk-sync (If on DIFFERENT Wi-Fi / anywhere!)
 ------------------------------------------------------------
 Hotkeys (Physical Keyboard on Laptop 2):
   - F8 or Ctrl + Alt + Space : Toggle (Start / Pause / Resume)
@@ -33,13 +33,13 @@ Hotkeys (Physical Keyboard on Laptop 2):
 #### If Laptops are on DIFFERENT Wi-Fi / Hotspot / Anywhere in the World:
 * **Option A (Web Browser — Zero Install):**
   Open the Internet Room in any browser on Laptop 1 (or phone):
-  👉 **`https://ntfy.sh/autotyper-sync-room`**
+  👉 **`https://ntfy.sh/autotyper-pichipuk-sync`**
   Paste or type your code and click **Send**. Laptop 2 receives it instantly in under 0.2 seconds!
 * **Option B (Universal Dashboard):**
   Double-click **`dashboard.html`** on Laptop 1 in Chrome/Edge, paste code, and click **Send to Laptop 2**.
 * **Option C (Live File Watcher in VS Code / Notepad):**
   ```powershell
-  python autotyper.py watch "my_code.py" --room autotyper-sync-room
+  python autotyper.py watch "my_code.py" --room autotyper-pichipuk-sync
   ```
   Every time you press `Ctrl + S` on Laptop 1, it automatically syncs to Laptop 2 over the internet!
 

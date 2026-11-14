@@ -38,6 +38,6 @@ SYNC_PORT = 8765
 SYNC_HOST = "0.0.0.0"
 
 # Cloud Sync Room (for different Wi-Fi / mobile networks / anywhere in the world)
-# Change this to any secret room name you like (e.g. "team-code-sync-7712")
-DEFAULT_CLOUD_ROOM = "autotyper-sync-room"
+# Unique private room code for this project
+DEFAULT_CLOUD_ROOM = "autotyper-pichipuk-sync"
 CLOUD_RELAY_URL = "https://ntfy.sh"
